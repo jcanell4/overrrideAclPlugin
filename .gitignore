@@ -1,0 +1,9 @@
+/lang/
+/pix/
+
+*
+
+!admin.php
+!.gitignore
+
+!*/

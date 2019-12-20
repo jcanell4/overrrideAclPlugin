@@ -58,6 +58,8 @@ class admin_plugin_acl extends DokuWiki_Admin_Plugin {
         global $config_cascade;
         global $INPUT;
 
+        $this->_sequentialSecurityCopy();
+
         // fresh 1:1 copy without replacements
         $AUTH_ACL = file($config_cascade['acl']['default']);
 
@@ -123,8 +125,9 @@ class admin_plugin_acl extends DokuWiki_Admin_Plugin {
                 // handle update of the whole file
                 foreach($INPUT->arr('del') as $where => $names){
                     // remove all rules marked for deletion
-                    foreach($names as $who)
+                    foreach($names as $who) {
                         unset($acl[$where][$who]);
+                    }
                 }
                 // prepare lines
                 $lines = array();
@@ -160,6 +163,32 @@ class admin_plugin_acl extends DokuWiki_Admin_Plugin {
 
         // initialize ACL array
         $this->_init_acl_config();
+    }
+
+    /**
+     * Copia secuencial de seguridad del archivo acl_auth.php
+     */
+    function _sequentialSecurityCopy() {
+        global $config_cascade;
+        //Obtiene la ruta del archivo acl_auth.php
+        $acl_dirname = dirname($config_cascade['acl']['default']);
+
+        //Crea, si no existe, el directorio en el que se almacenarán las copias del archivo acl_auth.php
+        $acl_tmp_dir = "$acl_dirname/acl_auth_tmp";
+        @mkdir($acl_tmp_dir);
+
+        //Obtiene, o inicia, el valor de la secuencia de la última copia
+        $fcontador = "$acl_tmp_dir/.contador";
+        $contador = @file_get_contents($fcontador);
+        if ($contador === FALSE) {
+            $contador = "000";
+        }else {
+            $contador = str_pad(((1 + $contador) % 100), 3, "0", STR_PAD_LEFT);
+        }
+        file_put_contents($fcontador, $contador);
+
+        //Realiza la copia secuancial del archivo acl_auth.php
+        copy($config_cascade['acl']['default'], "$acl_tmp_dir/acl_auth.php.$contador");
     }
 
     /**
