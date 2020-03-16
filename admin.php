@@ -183,12 +183,21 @@ class admin_plugin_acl extends DokuWiki_Admin_Plugin {
         if ($contador === FALSE) {
             $contador = "000";
         }else {
-            $contador = str_pad(((1 + $contador) % 100), 3, "0", STR_PAD_LEFT);
+            $actual = md5(file_get_contents($config_cascade['acl']['default']));
+            $disco = md5(file_get_contents("$acl_tmp_dir/acl_auth.php.$contador"));
+            if ($actual == $disco) {
+                $contador = NULL;
+            }else {
+                $contador = str_pad(((1 + $contador) % 100), 3, "0", STR_PAD_LEFT);
+            }
         }
-        file_put_contents($fcontador, $contador);
 
-        //Realiza la copia secuancial del archivo acl_auth.php
-        copy($config_cascade['acl']['default'], "$acl_tmp_dir/acl_auth.php.$contador");
+        if (!empty($contador)) {
+            file_put_contents($fcontador, $contador);
+
+            //Realiza la copia secuancial del archivo acl_auth.php
+            copy($config_cascade['acl']['default'], "$acl_tmp_dir/acl_auth.php.$contador");
+        }
     }
 
     /**
