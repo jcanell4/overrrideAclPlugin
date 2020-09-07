@@ -29,6 +29,9 @@ class admin_plugin_acl extends DokuWiki_Admin_Plugin {
     var $who = '';
     var $usersgroups = array();
     var $specials = array();
+    //[STARTIOC]
+    private $error = "";
+    //[END: IOC]
 
     /**
      * return prompt for admin menu
@@ -58,7 +61,9 @@ class admin_plugin_acl extends DokuWiki_Admin_Plugin {
         global $config_cascade;
         global $INPUT;
 
+        //[STARTIOC]
         $this->_sequentialSecurityCopy();
+        //[END: IOC]
 
         // fresh 1:1 copy without replacements
         $AUTH_ACL = file($config_cascade['acl']['default']);
@@ -82,11 +87,23 @@ class admin_plugin_acl extends DokuWiki_Admin_Plugin {
 
         // user or group choosen?
         $who = trim($INPUT->str('acl_w'));
-        if($INPUT->str('acl_t') == '__g__' && $who){
+        if ($INPUT->str('acl_t') == '__g__' && $who){
+            //[STARTIOC]
+            if (!$auth->validGroup($who)) {
+                $this->error = "grup";
+                return;
+            }
+            //[END: IOC]
             $this->who = '@'.ltrim($auth->cleanGroup($who),'@');
         }elseif($INPUT->str('acl_t') == '__u__' && $who){
             $this->who = ltrim($who,'@');
             if($this->who != '%USER%' && $this->who != '%GROUP%'){ #keep wildcard as is
+                //[STARTIOC]
+                if (!$auth->validUser($this->who)) {
+                    $this->error = "usuari";
+                    return;
+                }
+                //[END: IOC]
                 $this->who = $auth->cleanUser($this->who);
             }
         }elseif($INPUT->str('acl_t') &&
@@ -388,24 +405,31 @@ class admin_plugin_acl extends DokuWiki_Admin_Plugin {
     function _html_info(){
         global $ID;
 
-        if($this->who){
+        //[STARTIOC]
+        if ($this->who && $this->error === ""){
             $current = $this->_get_exact_perm();
-
             // explain current permissions
             $this->_html_explain($current);
             // load editor
             $this->_html_acleditor($current);
-        }else{
-            echo '<p>';
-            if($this->ns){
-                printf($this->getLang('p_choose_ns'),hsc($this->ns));
-            }else{
-                printf($this->getLang('p_choose_id'),hsc($ID));
+        }
+        else{
+            if ($this->error !== "") {
+                echo "<p><b>ATENCIÓ!</b></p>";
+                echo "<p>Aquest nom de <b>{$this->error}</b> no existeix.</p>";
             }
-            echo '</p>';
-
+            else{
+                echo '<p>';
+                if ($this->ns){
+                    printf($this->getLang('p_choose_ns'),hsc($this->ns));
+                }else{
+                    printf($this->getLang('p_choose_id'),hsc($ID));
+                }
+                echo '</p>';
+            }
             echo $this->locale_xhtml('help');
         }
+        //[ENDIOC]
     }
 
     /**
